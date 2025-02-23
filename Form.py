@@ -9,7 +9,6 @@ class Form:
         self.body = body
         self.separatorCount = 0
         if _settings is None:
-            print("SETTING DEFAULT SETTINGS")
             self.settings = FormSettings()
         else:
             self.settings = _settings 
@@ -65,13 +64,18 @@ class OptionForm(Form):
         if "SEPARATOR" in name and name != f"SEPARATOR{self.separatorCount}":
             raise ValueError("Option name and tooltip can not include 'SEPARATOR'")
         
+        if not callable(callback):
+            raise ValueError("Callback must be a callable function")
+        elif callback.__code__.co_argcount not in [1, 0]:
+            raise ValueError("Callback must take exactly one parameter (self) or none.")
+
         self.options[name] = {
             self._CALLBACK: callback,
             self._TOOLTIP: tooltip
         }
     
     def addSeparator(self, text: str = None) -> None:
-        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if isinstance(text, str) else "", "SEPARATOR")
+        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if text else "", "SEPARATOR")
         super().addSeparator()
 
     def send(self) -> None:
@@ -103,13 +107,18 @@ class OptionForm(Form):
         chosen_option = list(options.keys())[choice - 1]
 
         print(self.settings.header)
-        if self.settings.clear_form_after_action:
-            print("TRIED TO CLEAR")
+        if self.settings.clear_form_after_form:
+            print("Clearing Form...")  # Debugging line
+            print("\n" * 20)
             os.system("cls" if os.name == "nt" else "clear")
         if self.settings.default_callback:
             self.settings.default_callback()
 
-        self.options[chosen_option][self._CALLBACK]()
+        callback = self.options[chosen_option][self._CALLBACK]
+        if callback.__code__.co_argcount == 1:
+            callback(self)
+        else:
+            callback()
 
 class InputForm(Form):
 
@@ -121,58 +130,187 @@ class InputForm(Form):
     # Data Consts
     TYPE = 0
     RESPONSE = 1
+    TOOLTIP = 2
+    VALIDATION = 3
+    DEFAULT = 4
+    CALLBACK = 5
 
     def __init__(self, title: str, body: str = None, settings: object = None):
         super().__init__(title, body, settings) 
         self.inputs = {}
-    
-    def addInput(self, name: str, type: str = TEXT) -> None:
 
-        if "SEPARATOR" in name and name != f"SEPARATOR{self.separatorCount}":
-            raise ValueError("Option name and tooltip can not include 'SEPARATOR'")
+    def _formInputRegisteration(func):
+        def wrapper(self, name, *args, **kwargs):
+            validation = kwargs.get('validation', None)
+            callback = kwargs.get('callback', None)
+            if "SEPARATOR" in name and name != f"SEPARATOR{self.separatorCount}":
+                raise ValueError("Input name and tooltip can not include 'SEPARATOR'")
+            if validation and validation.__code__.co_argcount != 1:
+                raise ValueError("Validation function must take exactly one parameter (response)")
+            if callback and callable(callback) and callback.__code__.co_argcount not in [1, 0]:
+                raise ValueError("Callback must take exactly one parameter (self) or none.")
+            
+            self.inputs[name] = {
+                self.RESPONSE: None,
+                self.TOOLTIP: kwargs.get('tooltip', None),
+            }
 
-        self.inputs[name] = {
-            self.TYPE: type,
-            self.RESPONSE: None
-        }
+            return func(self, name, *args, **kwargs)
+        return wrapper
+
+    @_formInputRegisteration
+    def registerTextInput(self, name: str, tooltip: str = None, validation: callable = None, default: str = None, callback: callable = None) -> None:
+        """
+        Args:
+            name (str): The name of the input
+            tooltip (str): The tooltip for the input
+            validation (callable): A function that returns False if the input is valid, string explaining why otherwise
+            default (str): The default value for the input
+            callback (callable): A function to be called after the input is received
+        """
+        
+        self.inputs[name][self.TYPE] = self.TEXT
+        self.inputs[name][self.VALIDATION] = validation
+        self.inputs[name][self.DEFAULT] = default
+        self.inputs[name][self.CALLBACK] = lambda self: callback(self) if callback else None
+
+    @_formInputRegisteration
+    def registerNumberInput(self, name: str, tooltip: str = None, validation: callable = None, default: int = None, callback: callable = None) -> None:
+        """
+        Args:
+            name (str): The name of the input
+            tooltip (str): The tooltip for the input
+            validation (callable): A function that returns False if the input is valid, string explaining why otherwise
+            default (int): The default value for the input
+            callback (callable): A function to be called after the input is received
+        """
+        
+        self.inputs[name][self.TYPE] = self.NUMBER
+        self.inputs[name][self.VALIDATION] = validation
+        self.inputs[name][self.DEFAULT] = default
+        self.inputs[name][self.CALLBACK] = lambda self: callback(self) if callback else None
+
+    @_formInputRegisteration
+    def registerBoolInput(self, name: str, tooltip: str = None, validation: callable = None, default: bool = None, callback: callable = None) -> None:
+        """
+        Args:
+            name (str): The name of the input
+            tooltip (str): The tooltip for the input
+            default (bool): The default value for the input
+            callback (callable): A function to be called after the input is received
+        """
+        def bool_validation(response: str) -> str:
+            if response.lower() not in ["y", "yes", "n", "no", "true", "false"]:
+                return "Invalid input: Please enter 'y' or 'n'."
+            return None
+
+        self.registerTextInput(
+            name=name,
+            tooltip=tooltip,
+            validation=bool_validation and validation,
+            callback=callback
+        )
+        self.inputs[name][self.TYPE] = self.BOOL
+        self.inputs[name][self.DEFAULT] = default
     
-    def addSeparator(self, text = None) -> None:
+    def addSeparator(self, text: str = None) -> None:
         super().addSeparator()
-        self.addInput(f"SEPARATOR{self.separatorCount}", lambda: text if isinstance(text, str) else "")
-    
-    ## Sends the form to the user and collects their inputs. 
+        self.inputs[f"SEPARATOR{self.separatorCount}"] = {
+            self.TOOLTIP: str(text) if text is not None else "" 
+        }
+
     def send(self) -> dict:
+        """ Sends the form to the user and collects their inputs. """
         super().send() 
+
+        def clear_terminal():
+            print("Clearing Form...")  # Debugging line
+            print("\n" * 20)
+            os.system("cls" if os.name == "nt" else "clear")
 
         for name, value in self.inputs.items():
             if "SEPARATOR" in name:
-                print(value[self.RESPONSE])
-            elif value[self.TYPE] == self.BOOL:
+                print(value[self.TOOLTIP])
+                continue
+            
+            inputCode = lambda: input(
+                name
+                + (f" (Default: {value[self.DEFAULT]})" if value[self.DEFAULT] is not None else "")
+                + (f" --> {value[self.TOOLTIP]}" if value[self.TOOLTIP] else "")    
+                + (" (y/n)" if value[self.TYPE] == self.BOOL else "") 
+                + ": "
+            )
+
+            if value[self.TYPE] == self.BOOL:
                 while True:
-                    response = input(f"{name} (y/n): ").lower()
-                    if response in ["y", "yes"]:
+                    response = inputCode().lower()
+                    if response in ["y", "yes", "true"]:
                         self.inputs[name][self.RESPONSE] = True
-                        break 
-                    elif response in ["n", "no"]:
+                    elif response in ["n", "no", "false"]:
                         self.inputs[name][self.RESPONSE] = False
-                        break
+                    elif response == "" and value[self.DEFAULT] is not None:
+                        self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
                     else:
                         print("Invalid input: Please enter 'y' or 'n'.")
+                        continue
+
+                    if value[self.VALIDATION]:
+                        validation_result = value[self.VALIDATION](self.inputs[name][self.RESPONSE])
+                        if validation_result:
+                            print(validation_result)
+                            continue
+                    break
             elif value[self.TYPE] == self.NUMBER:
                 while True:
                     try:
-                        self.inputs[name][self.RESPONSE] = int(input(f"{name}: "))
+                        response = inputCode()
+                        if response == "" and value[self.DEFAULT] is not None:
+                            self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
+                            break
+                        
+                        int(response)
+
+                        if value[self.VALIDATION]:
+                            validation_result = value[self.VALIDATION]((response))
+                            if validation_result:
+                                print(validation_result)
+                                continue
+                        self.inputs[name][self.RESPONSE] = response
                         break
                     except ValueError:
                         print("Please enter a valid number.")
             else:
-                self.inputs[name][self.RESPONSE] = input(f"{name}: ")
+                while True:
+                    response = inputCode()
+                    if response == "" and value[self.DEFAULT] is not None:
+                        self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
+                        break
 
+                    if value[self.VALIDATION]:
+                        validation_result = value[self.VALIDATION](response)
+                        if validation_result:
+                            print(validation_result)
+                            continue
+                    self.inputs[name][self.RESPONSE] = response
+                    break
+
+            if self.settings.clear_form_after_action:
+                clear_terminal()
+            callback = value.get(self.CALLBACK, None)
+            if callback and callable(callback):
+                if callback.__code__.co_argcount == 1:
+                    callback(self)
+                else:
+                    callback()
+
+        if self.settings.clear_form_after_form:
+            clear_terminal()
         print(self.settings.header)
-        if self.settings.clear_form_after_action:
-            print("Attempting to clear the screen...")  # Debugging line
-            os.system("cls" if os.name == "nt" else "clear")
         if self.settings.default_callback:
             self.settings.default_callback()
+
+        for name in list(self.inputs.keys()): # Remove separators from response
+            if "SEPARATOR" in name:
+                self.inputs.pop(name)
 
         return self.inputs
