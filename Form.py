@@ -175,18 +175,21 @@ class OptionForm(Form):
 class InputForm(Form):
 
     from enum import Enum
-    # Input Consts
-    TEXT = 0
-    NUMBER = 1
-    BOOL = 2
 
-    # Data Consts
-    TYPE = 0
-    RESPONSE = 1
-    TOOLTIP = 2
-    VALIDATION = 3
-    DEFAULT = 4
-    CALLBACK = 5
+    class InputConsts (Enum):
+        TEXT = "text"
+        NUMBER = "num"
+        BOOL = "bool"
+        pass
+
+    class DataEntryConsts (Enum):
+        TYPE = 'type'
+        RESPONSE = 'response'
+        TOOLTIP = 'tooltip'
+        VALIDATION = 'validation'
+        DEFAULT = 'default'
+        CALLBACK = 'callback'
+        pass
 
     class NumConsts (Enum):
         NUMTYPEKEY = 'numtype'
@@ -203,15 +206,15 @@ class InputForm(Form):
             validation = kwargs.get('validation', None)
             callback = kwargs.get('callback', None)
             if "SEPARATOR" in name and name != f"SEPARATOR{self.separatorCount}":
-                raise ValueError("Input name and tooltip can not include 'SEPARATOR'")
+                raise ValueError("Input name and tooltip cannot include 'SEPARATOR'")
             if validation and validation.__code__.co_argcount != 1:
                 raise ValueError("Validation function must take exactly one parameter (response)")
             if callback and callable(callback) and callback.__code__.co_argcount not in [1, 0]:
                 raise ValueError("Callback must take exactly one parameter (self) or none.")
             
             self.inputs[name] = {
-                self.RESPONSE: None,
-                self.TOOLTIP: kwargs.get('tooltip', None),
+                self.DataEntryConsts.RESPONSE: None,
+                self.DataEntryConsts.TOOLTIP: kwargs.get('tooltip', None),
             }
 
             return func(self, name, *args, **kwargs)
@@ -228,10 +231,10 @@ class InputForm(Form):
             callback (callable): A function to be called after the input is received
         """
         
-        self.inputs[name][self.TYPE] = self.TEXT
-        self.inputs[name][self.VALIDATION] = validation
-        self.inputs[name][self.DEFAULT] = default
-        self.inputs[name][self.CALLBACK] = lambda self: callback(self) if callback else None
+        self.inputs[name][self.DataEntryConsts.TYPE] = self.InputConsts.TEXT
+        self.inputs[name][self.DataEntryConsts.VALIDATION] = validation
+        self.inputs[name][self.DataEntryConsts.DEFAULT] = default
+        self.inputs[name][self.DataEntryConsts.CALLBACK] = lambda self: callback(self) if callback else None
 
     @_formInputRegisteration
     def registerNumberInput(self, name: str, tooltip: str = None, numType: NumConsts = NumConsts.NUM_INT, validation: callable = None, default: int = None, callback: callable = None) -> None:
@@ -245,10 +248,10 @@ class InputForm(Form):
         """
         
         self.inputs[name][self.NumConsts.NUMTYPEKEY] = numType
-        self.inputs[name][self.TYPE] = self.NUMBER
-        self.inputs[name][self.VALIDATION] = validation
-        self.inputs[name][self.DEFAULT] = default
-        self.inputs[name][self.CALLBACK] = lambda self: callback(self) if callback else None
+        self.inputs[name][self.DataEntryConsts.TYPE] = self.InputConsts.NUMBER
+        self.inputs[name][self.DataEntryConsts.VALIDATION] = validation
+        self.inputs[name][self.DataEntryConsts.DEFAULT] = default
+        self.inputs[name][self.DataEntryConsts.CALLBACK] = lambda self: callback(self) if callback else None
 
     @_formInputRegisteration
     def registerBoolInput(self, name: str, tooltip: str = None, validation: callable = None, default: bool = None, callback: callable = None) -> None:
@@ -270,13 +273,13 @@ class InputForm(Form):
             validation=bool_validation and validation,
             callback=callback
         )
-        self.inputs[name][self.TYPE] = self.BOOL
-        self.inputs[name][self.DEFAULT] = default
+        self.inputs[name][self.DataEntryConsts.TYPE] = self.InputConsts.BOOL
+        self.inputs[name][self.DataEntryConsts.DEFAULT] = default
     
     def addSeparator(self, text: str = None) -> None:
         super().addSeparator()
         self.inputs[f"SEPARATOR{self.separatorCount}"] = {
-            self.TOOLTIP: str(text) if text is not None else "" 
+            self.DataEntryConsts.TOOLTIP: str(text) if text is not None else "" 
         }
 
     def send(self) -> dict:
@@ -294,44 +297,44 @@ class InputForm(Form):
 
         for name, value in self.inputs.items():
             if "SEPARATOR" in name:
-                print(value[self.TOOLTIP])
+                print(value[self.DataEntryConsts.TOOLTIP])
                 continue
             
             inputCode = lambda: input(
                 name
-                + (f" (Default: {value[self.DEFAULT]})" if value[self.DEFAULT] is not None else "")
-                + (f" --> {value[self.TOOLTIP]}" if value[self.TOOLTIP] else "")    
-                + (" (y/n)" if value[self.TYPE] == self.BOOL else "") 
+                + (f" (Default: {value[self.DataEntryConsts.DEFAULT]})" if value[self.DataEntryConsts.DEFAULT] is not None else "")
+                + (f" --> {value[self.DataEntryConsts.TOOLTIP]}" if value[self.DataEntryConsts.TOOLTIP] else "")    
+                + (" (y/n)" if value[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL else "") 
                 + ": "
             )
 
-            if value[self.TYPE] == self.BOOL:
+            if value[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL:
                 while True:
                     response = inputCode().lower()
                     if response in ["y", "yes", "true"]:
-                        self.inputs[name][self.RESPONSE] = True
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = True
                     elif response in ["n", "no", "false"]:
-                        self.inputs[name][self.RESPONSE] = False
-                    elif response == "" and value[self.DEFAULT] is not None:
-                        self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = False
+                    elif response == "" and value[self.DataEntryConsts.DEFAULT] is not None:
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = value[self.DataEntryConsts.DEFAULT]
                     else:
                         print("Invalid input: Please enter 'y' or 'n'.")
                         continue
 
-                    if value[self.VALIDATION]:
-                        validation_result = value[self.VALIDATION](self.inputs[name][self.RESPONSE])
+                    if value[self.DataEntryConsts.VALIDATION]:
+                        validation_result = value[self.DataEntryConsts.VALIDATION](self.inputs[name][self.DataEntryConsts.RESPONSE])
                         if validation_result:
                             print(validation_result)
                             continue
                     break
-            elif value[self.TYPE] == self.NUMBER:
+            elif value[self.DataEntryConsts.TYPE] == self.InputConsts.NUMBER:
                 ERROR_INV_NUMCONST = 'err_invalid-numconst'
 
                 while True:
                     try:
                         response = inputCode()
-                        if response == "" and value[self.DEFAULT] is not None:
-                            self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
+                        if response == "" and value[self.DataEntryConsts.DEFAULT] is not None:
+                            self.inputs[name][self.DataEntryConsts.RESPONSE] = value[self.DataEntryConsts.DEFAULT]
                             break
                         
                         numType = value[self.NumConsts.NUMTYPEKEY]
@@ -343,12 +346,12 @@ class InputForm(Form):
                         else:
                             raise ValueError(ERROR_INV_NUMCONST) # This will be ignored because of the try-catch block
 
-                        if value[self.VALIDATION]:
-                            validation_result = value[self.VALIDATION]((response))
+                        if value[self.DataEntryConsts.VALIDATION]:
+                            validation_result = value[self.DataEntryConsts.VALIDATION]((response))
                             if validation_result:
                                 print(validation_result)
                                 continue
-                        self.inputs[name][self.RESPONSE] = response
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = response
                         break
                     except ValueError as e:
                         if str(e) == ERROR_INV_NUMCONST:
@@ -358,21 +361,21 @@ class InputForm(Form):
             else:
                 while True:
                     response = inputCode()
-                    if response == "" and value[self.DEFAULT] is not None:
-                        self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
+                    if response == "" and value[self.DataEntryConsts.DEFAULT] is not None:
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = value[self.DataEntryConsts.DEFAULT]
                         break
 
-                    if value[self.VALIDATION]:
-                        validation_result = value[self.VALIDATION](response)
+                    if value[self.DataEntryConsts.VALIDATION]:
+                        validation_result = value[self.DataEntryConsts.VALIDATION](response)
                         if validation_result:
                             print(validation_result)
                             continue
-                    self.inputs[name][self.RESPONSE] = response
+                    self.inputs[name][self.DataEntryConsts.RESPONSE] = response
                     break
 
             if self.settings.clear_form_after_action:
                 clear_terminal()
-            callback = value.get(self.CALLBACK, None)
+            callback = value.get(self.DataEntryConsts.CALLBACK, None)
             if callback and callable(callback):
                 if callback.__code__.co_argcount == 1:
                     callback(self)
