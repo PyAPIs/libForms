@@ -1,7 +1,8 @@
 @echo off
 git clone https://github.com/PyAPIs/FormsAPI
 
-if %ERRORLEVEL% neq 0 ( :: Check if the git clone was successful
+:: Check if the git clone was successful
+if %ERRORLEVEL% neq 0 (
     echo Git clone failed. Please check you have git installed and you have permission to clone the repository.
     exit /b 1
 )
