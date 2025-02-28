@@ -1,8 +1,61 @@
 import os
-from FormSettings import FormSettings
+from abc import ABC
+
+class FormSettings:
+    """ Form settings can not be update after form creation. 
+    
+    Attributes:
+        header: str - The header to display at the top, bottom and in between elements of the form.
+        default_callback: callable - The callback to run after the form concludes. This always runs before the custom callback.
+        clear_form_after_action: bool - If True, the form will be cleared after an input is filled. Reduntant in OptionForm.
+        clear_form_after_form: bool - If True, the form will be cleared after the form is completed.
+    """
+
+    HEADER = "header"
+    DEFAULT_CALLBACK = "default_callback"
+    CLEAR_FORM_AFTER_ACTION = "clear_form_after_action"
+    CLEAR_FORM_AFTER_FORM = "clear_form_after_form"
+
+    def __init__(self):
+        self.settings = {
+            self.HEADER: "........................................................",
+            self.DEFAULT_CALLBACK: None,
+            self.CLEAR_FORM_AFTER_ACTION: False,
+            self.CLEAR_FORM_AFTER_FORM: False
+        }
+
+    def editSetting(self, setting, newVal=None):
+        if setting not in self.settings:
+            raise ValueError(f"Invalid setting: {setting}")
+
+        if newVal is None:
+            newVal = self.settings[setting]
+
+        if setting == self.DEFAULT_CALLBACK and not callable(newVal):
+            raise ValueError("default_callback must be a callable")
+        elif setting in [self.CLEAR_FORM_AFTER_ACTION, self.CLEAR_FORM_AFTER_FORM] and not isinstance(newVal, bool):
+            raise ValueError(f"{setting} must be a boolean")
+
+        self.settings[setting] = newVal
+
+    @property
+    def header(self):
+        return self.settings[self.HEADER]
+
+    @property
+    def default_callback(self):
+        return self.settings[self.DEFAULT_CALLBACK]
+
+    @property
+    def clear_form_after_action(self):
+        return self.settings[self.CLEAR_FORM_AFTER_ACTION]
+
+    @property
+    def clear_form_after_form(self):
+        return self.settings[self.CLEAR_FORM_AFTER_FORM]
 
 # Inherit this class to make edits
-class Form:
+class Form (ABC):
     def __init__(self, title: str, body: str = None, _settings: FormSettings = None):
         """ Form class is the base class for all forms. """
         self.title = title
@@ -41,7 +94,6 @@ class Form:
         if not isinstance(value, FormSettings):
             raise ValueError("settings must be an instance of FormSettings")
         self._settings = value
-
 
 class OptionForm(Form):
 
@@ -122,6 +174,7 @@ class OptionForm(Form):
 
 class InputForm(Form):
 
+    from enum import Enum
     # Input Consts
     TEXT = 0
     NUMBER = 1
@@ -134,6 +187,12 @@ class InputForm(Form):
     VALIDATION = 3
     DEFAULT = 4
     CALLBACK = 5
+
+    class NumConsts (Enum):
+        NUMTYPEKEY = 'numtype'
+        NUM_INT = 'int'
+        NUM_FLOAT = 'float'
+        pass
 
     def __init__(self, title: str, body: str = None, settings: object = None):
         super().__init__(title, body, settings) 
@@ -175,7 +234,7 @@ class InputForm(Form):
         self.inputs[name][self.CALLBACK] = lambda self: callback(self) if callback else None
 
     @_formInputRegisteration
-    def registerNumberInput(self, name: str, tooltip: str = None, validation: callable = None, default: int = None, callback: callable = None) -> None:
+    def registerNumberInput(self, name: str, tooltip: str = None, numType: NumConsts = NumConsts.NUM_INT, validation: callable = None, default: int = None, callback: callable = None) -> None:
         """
         Args:
             name (str): The name of the input
@@ -185,6 +244,7 @@ class InputForm(Form):
             callback (callable): A function to be called after the input is received
         """
         
+        self.inputs[name][self.NumConsts.NUMTYPEKEY] = numType
         self.inputs[name][self.TYPE] = self.NUMBER
         self.inputs[name][self.VALIDATION] = validation
         self.inputs[name][self.DEFAULT] = default
@@ -220,7 +280,11 @@ class InputForm(Form):
         }
 
     def send(self) -> dict:
-        """ Sends the form to the user and collects their inputs. """
+        """ 
+        Sends the form to the user and collects their inputs.
+        
+        Note: This dictionary has the input name as a key. Best store these with constants on form creation.
+        """
         super().send() 
 
         def clear_terminal():
@@ -261,6 +325,8 @@ class InputForm(Form):
                             continue
                     break
             elif value[self.TYPE] == self.NUMBER:
+                ERROR_INV_NUMCONST = 'err_invalid-numconst'
+
                 while True:
                     try:
                         response = inputCode()
@@ -268,7 +334,14 @@ class InputForm(Form):
                             self.inputs[name][self.RESPONSE] = value[self.DEFAULT]
                             break
                         
-                        int(response)
+                        numType = value[self.NumConsts.NUMTYPEKEY]
+                        response = float(response)
+                        if (numType == self.NumConsts.NUM_FLOAT):
+                            pass
+                        elif (numType == self.NumConsts.NUM_INT):
+                            response = round(response)
+                        else:
+                            raise ValueError(ERROR_INV_NUMCONST) # This will be ignored because of the try-catch block
 
                         if value[self.VALIDATION]:
                             validation_result = value[self.VALIDATION]((response))
@@ -277,8 +350,11 @@ class InputForm(Form):
                                 continue
                         self.inputs[name][self.RESPONSE] = response
                         break
-                    except ValueError:
-                        print("Please enter a valid number.")
+                    except ValueError as e:
+                        if str(e) == ERROR_INV_NUMCONST:
+                            print("WARNING Developer Error: numType not a NumConst")
+                        else:
+                            print("Please enter a valid number.")
             else:
                 while True:
                     response = inputCode()

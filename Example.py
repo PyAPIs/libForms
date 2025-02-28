@@ -1,5 +1,4 @@
-from Form import OptionForm, InputForm
-from FormSettings import FormSettings
+from Form import *
 
 class OptionFormExample:
 
@@ -66,11 +65,12 @@ class InputFormExample:
 
     form.registerNumberInput(
         name="Number Input",
-        tooltip="This is a tooltip for Number input"
+        tooltip="This is a tooltip for Number input",
+        numType=InputForm.NumConsts.NUM_FLOAT
     )
 
     response = form.send()
 
     print("\n\nResponse:")
     for key, value in response.items():
-        print(f"{key}: {value.get(InputForm.RESPONSE, 'No response')}")
+        print(f"{key}: {value.get(InputForm.RESPONSE, 'No response')} ({type(value.get(InputForm.RESPONSE, None))})")
