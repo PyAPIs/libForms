@@ -73,4 +73,4 @@ class InputFormExample:
 
     print("\n\nResponse:")
     for key, value in response.items():
-        print(f"{key}: {value.get(InputForm.RESPONSE, 'No response')} ({type(value.get(InputForm.RESPONSE, None))})")
+        print(f"{key}: {value.get(InputForm.DataEntryConsts.RESPONSE, 'No response')} ({type(value.get(InputForm.DataEntryConsts.RESPONSE, None))})")
