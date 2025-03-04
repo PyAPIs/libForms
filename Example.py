@@ -3,18 +3,16 @@ from Form import *
 class OptionFormExample:
 
     settings = FormSettings()
-    settings.editSetting(FormSettings.HEADER, "+-+-+-+-+-+-+-+-+-")
-    settings.editSetting(FormSettings.SEPARATOR, "/*******************\\")
-    settings.editSetting(FormSettings.CLEAR_FORM_AFTER_FORM, True)
-    settings.editSetting(FormSettings.DEFAULT_CALLBACK, lambda: print("Default callback"))
+    settings.editSetting(FormSettings.Setting.HEADER, "+-+-+-+-+-+-+-+-+-")
+    settings.editSetting(FormSettings.Setting.SEPARATOR, "/*******************\\")
+    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
+    settings.editSetting(FormSettings.Setting.DEFAULT_CALLBACK, lambda: print("Default callback"))
 
     form = OptionForm(
         title="Form Title",
         body="This is a form with three options.",
-        settings=settings
+        settings=settings # Displays assigning settings after during creation
     )
-
-    form.settings = settings
 
     form.addOption(
         name="Option 1",
@@ -44,17 +42,17 @@ class InputFormExample:
     )
 
     settings = FormSettings()
-    settings.editSetting(FormSettings.HEADER, "\\/\/\/\/\/\/\/\/\/")
-    settings.editSetting(FormSettings.SEPARATOR, "/*******************\\" + "\n" + "\\*******************/")
-    settings.editSetting(FormSettings.CLEAR_FORM_AFTER_FORM, True)
-    settings.editSetting(FormSettings.DEFAULT_CALLBACK, lambda: print("\nValue Entered\n"))
+    settings.editSetting(FormSettings.Setting.HEADER, "\\/\/\/\/\/\/\/\/\/")
+    settings.editSetting(FormSettings.Setting.SEPARATOR, "/*******************\\" + "\n" + "\\*******************/")
+    settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
+    settings.editSetting(FormSettings.Setting.DEFAULT_CALLBACK, lambda: print("\nValue Entered\n"))
 
-    form.settings = settings
+    form.settings = settings # Displays assigning settings after form creation
     
     form.registerTextInput(
         name="Text Input",
         tooltip="This is a tooltip for Text input",
-        callback=lambda self: self.settings.editSetting(FormSettings.CLEAR_FORM_AFTER_ACTION, True)
+        callback=lambda self: self.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, True)
     )
 
     form.registerBoolInput(
