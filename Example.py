@@ -4,6 +4,7 @@ class OptionFormExample:
 
     settings = FormSettings()
     settings.editSetting(FormSettings.HEADER, "+-+-+-+-+-+-+-+-+-")
+    settings.editSetting(FormSettings.SEPARATOR, "/*******************\\")
     settings.editSetting(FormSettings.CLEAR_FORM_AFTER_FORM, True)
     settings.editSetting(FormSettings.DEFAULT_CALLBACK, lambda: print("Default callback"))
 
@@ -43,7 +44,8 @@ class InputFormExample:
     )
 
     settings = FormSettings()
-    settings.editSetting(FormSettings.HEADER, "\/\/\/\/\/\/\/\/\/")
+    settings.editSetting(FormSettings.HEADER, "\\/\/\/\/\/\/\/\/\/")
+    settings.editSetting(FormSettings.SEPARATOR, "/*******************\\" + "\n" + "\\*******************/")
     settings.editSetting(FormSettings.CLEAR_FORM_AFTER_FORM, True)
     settings.editSetting(FormSettings.DEFAULT_CALLBACK, lambda: print("\nValue Entered\n"))
 

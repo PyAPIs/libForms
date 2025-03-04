@@ -5,54 +5,63 @@ class FormSettings:
     """ Form settings can not be update after form creation. 
     
     Attributes:
-        header: str - The header to display at the top, bottom and in between elements of the form.
+        header: str - The header to display at the top and bottom of a form.
+        separator: str - String to be displayed in between elements of a form.
         default_callback: callable - The callback to run after the form concludes. This always runs before the custom callback.
         clear_form_after_action: bool - If True, the form will be cleared after an input is filled. Reduntant in OptionForm.
         clear_form_after_form: bool - If True, the form will be cleared after the form is completed.
     """
 
+    # Constants for referal
     HEADER = "header"
+    SEPARATOR = "separator"
     DEFAULT_CALLBACK = "default_callback"
     CLEAR_FORM_AFTER_ACTION = "clear_form_after_action"
     CLEAR_FORM_AFTER_FORM = "clear_form_after_form"
 
     def __init__(self):
-        self.settings = {
+        self.settings = { # Initialises default settings
             self.HEADER: "........................................................",
+            self.SEPARATOR: "",
             self.DEFAULT_CALLBACK: None,
             self.CLEAR_FORM_AFTER_ACTION: False,
             self.CLEAR_FORM_AFTER_FORM: False
         }
 
-    def editSetting(self, setting, newVal=None):
+    def editSetting(self, setting, newVal):
+        """ Edits the value of a form setting.
+
+        Attributes:
+            setting: Any - The setting you want edited (retrieved from the referal consts).
+        """
+
+        # Validation that setting exists
         if setting not in self.settings:
             raise ValueError(f"Invalid setting: {setting}")
 
-        if newVal is None:
-            newVal = self.settings[setting]
-
+        # Validation for newVal's
         if setting == self.DEFAULT_CALLBACK and not callable(newVal):
             raise ValueError("default_callback must be a callable")
         elif setting in [self.CLEAR_FORM_AFTER_ACTION, self.CLEAR_FORM_AFTER_FORM] and not isinstance(newVal, bool):
             raise ValueError(f"{setting} must be a boolean")
+        elif setting in [self.HEADER, self.SEPARATOR] and not isinstance(newVal, str):
+            raise ValueError(f"{setting} must be a string")
 
-        self.settings[setting] = newVal
+        self.settings[setting] = newVal # Sets setting to newVal
 
-    @property
-    def header(self):
-        return self.settings[self.HEADER]
+    def getSetting(self, setting):
+        """ Returns an `any` value of a form setting.
 
-    @property
-    def default_callback(self):
-        return self.settings[self.DEFAULT_CALLBACK]
+        Attributes:
+            setting: Any - The setting you want changed (retrieved from the referal consts).
 
-    @property
-    def clear_form_after_action(self):
-        return self.settings[self.CLEAR_FORM_AFTER_ACTION]
-
-    @property
-    def clear_form_after_form(self):
-        return self.settings[self.CLEAR_FORM_AFTER_FORM]
+        Returns a ValueError if the setting does not exist.
+        """
+        # Validation that setting exists
+        if setting not in self.settings:
+            raise ValueError(f"Invalid setting: {setting}") 
+        
+        return self.settings[setting] # Returns setting
 
 # Inherit this class to make edits
 class Form (ABC):
@@ -77,11 +86,11 @@ class Form (ABC):
         self.separatorCount += 1
     
     def send(self):
-        print(self.settings.header)
+        print(self.settings.getSetting(FormSettings.HEADER))
         print(self.title)
         if self.body:
             print(self.body)
-        print(self.settings.header)
+        print(self.settings.getSetting(FormSettings.SEPARATOR))
 
         # Extra code here
 
@@ -143,7 +152,7 @@ class OptionForm(Form):
                 print(f"  {idx}. {name}" + (f" --> {tt}" if tt else ""))
                 idx += 1
 
-        print(self.settings.header)
+        print(self.settings.getSetting(FormSettings.SEPARATOR))
 
         options = {key: option for key, option in self.options.items() if "SEPARATOR" not in key}
 
@@ -158,13 +167,13 @@ class OptionForm(Form):
 
         chosen_option = list(options.keys())[choice - 1]
 
-        print(self.settings.header)
-        if self.settings.clear_form_after_form:
+        print(self.settings.getSetting(FormSettings.HEADER))
+        if self.settings.getSetting(FormSettings.CLEAR_FORM_AFTER_FORM):
             print("Clearing Form...")  # Debugging line
             print("\n" * 20)
             os.system("cls" if os.name == "nt" else "clear")
-        if self.settings.default_callback:
-            self.settings.default_callback()
+        if self.settings.getSetting(FormSettings.DEFAULT_CALLBACK):
+            self.settings.getSetting(FormSettings.DEFAULT_CALLBACK)()
 
         callback = self.options[chosen_option][self._CALLBACK]
         if callback.__code__.co_argcount == 1:
@@ -373,7 +382,7 @@ class InputForm(Form):
                     self.inputs[name][self.DataEntryConsts.RESPONSE] = response
                     break
 
-            if self.settings.clear_form_after_action:
+            if self.settings.getSetting(FormSettings.CLEAR_FORM_AFTER_ACTION):
                 clear_terminal()
             callback = value.get(self.DataEntryConsts.CALLBACK, None)
             if callback and callable(callback):
@@ -382,11 +391,11 @@ class InputForm(Form):
                 else:
                     callback()
 
-        if self.settings.clear_form_after_form:
+        if self.settings.getSetting(FormSettings.CLEAR_FORM_AFTER_FORM):
             clear_terminal()
-        print(self.settings.header)
-        if self.settings.default_callback:
-            self.settings.default_callback()
+        print(self.settings.getSetting(FormSettings.HEADER))
+        if self.settings.getSetting(FormSettings.DEFAULT_CALLBACK):
+            self.settings.getSetting(FormSettings.DEFAULT_CALLBACK)()
 
         for name in list(self.inputs.keys()): # Remove separators from response
             if "SEPARATOR" in name:
