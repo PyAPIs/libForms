@@ -15,11 +15,11 @@ class FormSettings:
 
     class Setting (Enum):
         """ Enum class storing setting types. """
-        HEADER = "header"
-        SEPARATOR = "separator"
-        DEFAULT_CALLBACK = "default_callback"
-        CLEAR_FORM_AFTER_ACTION = "clear_form_after_action"
-        CLEAR_FORM_AFTER_FORM = "clear_form_after_form"
+        HEADER = 0
+        SEPARATOR = 1
+        DEFAULT_CALLBACK = 2
+        CLEAR_FORM_AFTER_ACTION = 3
+        CLEAR_FORM_AFTER_FORM = 4
         pass
 
     def __init__(self) -> None:
@@ -159,7 +159,7 @@ class OptionForm(Form):
     
     def addSeparator(self, text: str = None) -> None:
         """ Create a separator between options. """
-        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if text else "", "SEPARATOR")
+        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if text else "", "SEPARATOR") # lambda returns text if text exists.
         super().addSeparator()
 
     def send(self) -> None:
@@ -167,25 +167,25 @@ class OptionForm(Form):
 
         print("Options:")
         idx = 1 # Index to signify the order of the options.
-        for name, value in self.options.items():
+        options = {}  # A local variable with no separators and only options.
+        for name, value in self.options.items(): # Separates self.options into its key (name) and a info dict
             if "SEPARATOR" in name:
                 print("  " + value[self._CALLBACK]()) # Prints separator text (if it exists)
             else: # Print option
                 tt = value[self._TOOLTIP] # Get value for tooltip
                 print(f"  {idx}. {name}" + (f" --> {tt}" if tt else "")) # Print option in form `index. Option --> tooltip`
                 idx += 1 # Add to index
+                options[name] = value
 
         print(self.settings.getSetting(FormSettings.Setting.SEPARATOR))
 
-        options = {key: option for key, option in self.options.items() if "SEPARATOR" not in key}
-
-        choice = None
+        choice = None # Assign None to choice to enter while loop.
         while choice not in range(1, len(options) + 1): # Validation to ensure a valid option was selected
             try:
-                choice = int(input("Choose an option by number: "))
-                if choice not in range(1, len(options) + 1):
+                choice = int(input("Choose an option by number: ")) # Converts input to integer
+                if choice not in range(1, len(options) + 1): # True if the choice is not in the bounds of the options
                     print("Invalid choice, please try again.")
-            except ValueError:
+            except ValueError: # Catches cases where an int is not inputted in choice. Returns error and reruns while loop.
                 print("Please enter a valid number.")
 
         chosen_option = list(options.keys())[choice - 1] # Get the selected option.
@@ -200,37 +200,35 @@ class OptionForm(Form):
 
         # Run the callback of the selected option.
         callback = self.options[chosen_option][self._CALLBACK]
-        if callback.__code__.co_argcount == 1:
+        if callback.__code__.co_argcount == 1: # Return true if callback is passing exactly one parameter. 
             callback(self) # Send in `self` as a parameter if the callback requires it.
         else:
             callback()
 
 class InputForm(Form):
 
-    from enum import Enum
-
     class InputConsts (Enum):
         """ Enum class defining what types of compatible inputs """
-        TEXT = "text"
-        NUMBER = "num"
-        BOOL = "bool"
+        TEXT = 0
+        NUMBER = 1
+        BOOL = 2
         pass
 
     class DataEntryConsts (Enum):
         """ Enum class defining the data within an input """
-        TYPE = 'type'
-        RESPONSE = 'response'
-        TOOLTIP = 'tooltip'
-        VALIDATION = 'validation'
-        DEFAULT = 'default'
-        CALLBACK = 'callback'
+        TYPE = 0
+        RESPONSE = 1
+        TOOLTIP = 2
+        VALIDATION = 3
+        DEFAULT = 4
+        CALLBACK = 5
         pass
 
     class NumConsts (Enum):
         """ Enum class defining type of output a numeric input should be converted to """
-        NUMTYPEKEY = 'numtype' # Key for number types
-        NUM_INT = 'int'
-        NUM_FLOAT = 'float'
+        NUMTYPEKEY = 'numtype' # Key for number types. String to avoid overwriting.
+        NUM_INT = 0
+        NUM_FLOAT = 1
         pass
 
     def __init__(self, title: str, body: str = None, settings: FormSettings = None):
@@ -257,7 +255,7 @@ class InputForm(Form):
             
             self.inputs[name] = { # Saves the necessary data to Inputs. This will be expanded by the functions this is decorating.
                 self.DataEntryConsts.RESPONSE: None,
-                self.DataEntryConsts.TOOLTIP: kwargs.get('tooltip', None),
+                self.DataEntryConsts.TOOLTIP: kwargs.get('tooltip', None), # Assign TOOLTIP from the tooltip parameter from the function/
             }
 
             return func(self, name, *args, **kwargs)
@@ -280,7 +278,7 @@ class InputForm(Form):
         self.inputs[name][self.DataEntryConsts.CALLBACK] = lambda self: callback(self) if callback else None
 
     @_formInputRegistration
-    def registerNumberInput(self, name: str, tooltip: str = None, numType: NumConsts = NumConsts.NUM_INT, validation: callable = None, default: int = None, callback: callable = None) -> None:
+    def registerNumberInput(self, name: str, tooltip: str = None, numType: NumConsts = NumConsts.NUM_INT, validation: callable = None, default: float = None, callback: callable = None) -> None:
         """
         Args:
             name (str): The name of the input
@@ -333,44 +331,44 @@ class InputForm(Form):
             print("\n" * 20) # Separator line if the system can not clear the console.
             os.system("cls" if os.name == "nt" else "clear")
 
-        for name, value in self.inputs.items():
+        for name, data in self.inputs.items():
             if "SEPARATOR" in name:
-                print(value[self.DataEntryConsts.TOOLTIP]) # Print separator
+                print(data[self.DataEntryConsts.TOOLTIP]) # Print separator
                 continue # Skip to next iteration
             
             inputCode = lambda: input( # Anonomous function to format the input.
                 name
-                + (f" (Default: {value[self.DataEntryConsts.DEFAULT]})" if value[self.DataEntryConsts.DEFAULT] is not None else "")
-                + (f" --> {value[self.DataEntryConsts.TOOLTIP]}" if value[self.DataEntryConsts.TOOLTIP] else "")    
-                + (" (y/n)" if value[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL else "") 
+                + (f" (Default: {data[self.DataEntryConsts.DEFAULT]})" if data[self.DataEntryConsts.DEFAULT] is not None else "")
+                + (f" --> {data[self.DataEntryConsts.TOOLTIP]}" if data[self.DataEntryConsts.TOOLTIP] else "")    
+                + (" (y/n)" if data[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL else "") 
                 + ": "
             )
 
-            if value[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL:
+            if data[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL:
                 while True: # Repeat until a valid value is outputted
                     response = inputCode().lower()
                     if response in ["y", "yes", "true"]: # Handle true cases
                         self.inputs[name][self.DataEntryConsts.RESPONSE] = True
                     elif response in ["n", "no", "false"]: # Handle false cases
                         self.inputs[name][self.DataEntryConsts.RESPONSE] = False
-                    elif response == "" and value[self.DataEntryConsts.DEFAULT] is not None: # Handle empty cases where a default value exists
-                        self.inputs[name][self.DataEntryConsts.RESPONSE] = value[self.DataEntryConsts.DEFAULT]
+                    elif response == "" and data[self.DataEntryConsts.DEFAULT] is not None: # Handle empty cases where a default value exists
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = data[self.DataEntryConsts.DEFAULT]
                     else: # Handle invalid cases
                         print("Invalid input: Please enter 'y' or 'n'.")
                         continue # Try again
 
                     break # Skip to next iteration
-            elif value[self.DataEntryConsts.TYPE] == self.InputConsts.NUMBER:
+            elif data[self.DataEntryConsts.TYPE] == self.InputConsts.NUMBER:
                 ERROR_INV_NUMCONST = 'err_invalid-numconst' # Error const for easier one-time translation.
 
                 while True: # Repeat until a valid value is outputted
                     try:
                         response = inputCode()
-                        if response == "" and value[self.DataEntryConsts.DEFAULT] is not None: # Replace empty values with default 
-                            self.inputs[name][self.DataEntryConsts.RESPONSE] = value[self.DataEntryConsts.DEFAULT]
+                        if response == "" and data[self.DataEntryConsts.DEFAULT] is not None: # Replace empty values with default 
+                            self.inputs[name][self.DataEntryConsts.RESPONSE] = data[self.DataEntryConsts.DEFAULT]
                             break # Skip to next iteration
                         
-                        numType = value[self.NumConsts.NUMTYPEKEY] # Get the number type (float or int) the number needs to be converted to.
+                        numType = data[self.NumConsts.NUMTYPEKEY] # Get the number type (float or int) the number needs to be converted to.
                         response = float(response)
                         if (numType == self.NumConsts.NUM_FLOAT):
                             pass # Already converted to a float :)
@@ -379,8 +377,8 @@ class InputForm(Form):
                         else:
                             raise ValueError(ERROR_INV_NUMCONST) # This will be ignored because of the try-catch block
 
-                        if value[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
-                            validation_result = value[self.DataEntryConsts.VALIDATION]((response))
+                        if data[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
+                            validation_result = data[self.DataEntryConsts.VALIDATION]((response))
                             if validation_result: # If validation is True (i.e. not None), the validation has failed.
                                 print(validation_result) # Print error
                                 continue # Try again
@@ -388,18 +386,18 @@ class InputForm(Form):
                         break # Skip to next iteration
                     except ValueError as e:
                         if str(e) == ERROR_INV_NUMCONST:
-                            raise ValueError(f"numType {str(value[self.NumConsts.NUMTYPEKEY])} not a NumConst")
+                            raise ValueError(f"numType {str(data[self.NumConsts.NUMTYPEKEY])} not a NumConst")
                         else:
                             print("Please enter a valid number.")
             else: # Case where the type is text. 
                 while True: # Repeat until a valid value is outputted
                     response = inputCode()
-                    if response == "" and value[self.DataEntryConsts.DEFAULT] is not None: # Replace empty values with default
-                        self.inputs[name][self.DataEntryConsts.RESPONSE] = value[self.DataEntryConsts.DEFAULT]
+                    if response == "" and data[self.DataEntryConsts.DEFAULT] is not None: # Replace empty values with default
+                        self.inputs[name][self.DataEntryConsts.RESPONSE] = data[self.DataEntryConsts.DEFAULT]
                         break # Skip to next iteration
 
-                    if value[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
-                        validation_result = value[self.DataEntryConsts.VALIDATION](response)
+                    if data[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
+                        validation_result = data[self.DataEntryConsts.VALIDATION](response)
                         if validation_result: # If validation is True (i.e. not None), the validation has failed.
                             print(validation_result) # Print error
                             continue # Try again
@@ -408,7 +406,7 @@ class InputForm(Form):
 
             if self.settings.getSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION):
                 clear_terminal()
-            callback = value.get(self.DataEntryConsts.CALLBACK, None)
+            callback = data.get(self.DataEntryConsts.CALLBACK, None)
             if callback and callable(callback):
                 if callback.__code__.co_argcount == 1:
                     callback(self) # Pass through self if callback has one parameter
