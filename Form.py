@@ -413,11 +413,11 @@ class InputForm(Form):
                 else:
                     callback()
 
-        if self.settings.getSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM):
-            clear_terminal()
-        print(self.settings.getSetting(FormSettings.Setting.HEADER))
         if self.settings.getSetting(FormSettings.Setting.DEFAULT_CALLBACK):
-            self.settings.getSetting(FormSettings.Setting.DEFAULT_CALLBACK)()
+            self.settings.getSetting(FormSettings.Setting.DEFAULT_CALLBACK)() # If default callback is given, run it.
+        print(self.settings.getSetting(FormSettings.Setting.HEADER)) # Print header at the end.
+        if self.settings.getSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM):
+            clear_terminal() # Clear terminal
 
         for name in list(self.inputs.keys()): # Remove separators from response
             if "SEPARATOR" in name:
