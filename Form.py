@@ -275,7 +275,7 @@ class InputForm(Form):
         self.inputs[name][self.DataEntryConsts.TYPE] = self.InputConsts.TEXT
         self.inputs[name][self.DataEntryConsts.VALIDATION] = validation
         self.inputs[name][self.DataEntryConsts.DEFAULT] = default
-        self.inputs[name][self.DataEntryConsts.CALLBACK] = lambda self: callback(self) if callback else None
+        self.inputs[name][self.DataEntryConsts.CALLBACK] = callback
 
     @_formInputRegistration
     def registerNumberInput(self, name: str, tooltip: str = None, numType: NumConsts = NumConsts.NUM_INT, validation: callable = None, default: float = None, callback: callable = None) -> None:
@@ -292,7 +292,7 @@ class InputForm(Form):
         self.inputs[name][self.DataEntryConsts.TYPE] = self.InputConsts.NUMBER
         self.inputs[name][self.DataEntryConsts.VALIDATION] = validation
         self.inputs[name][self.DataEntryConsts.DEFAULT] = default
-        self.inputs[name][self.DataEntryConsts.CALLBACK] = lambda self: callback(self) if callback else None
+        self.inputs[name][self.DataEntryConsts.CALLBACK] = callback
 
     @_formInputRegistration
     def registerBoolInput(self, name: str, tooltip: str = None, default: bool = None, callback: callable = None) -> None:
