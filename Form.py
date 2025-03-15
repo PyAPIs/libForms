@@ -143,7 +143,7 @@ class OptionForm(Form):
              tooltip appears below the option for added detail. Can be blank.
         """
 
-        if "SEPARATOR" in name: # Disallow "SEPARATOR" to be in the name of any option. This is to prevent any future errors. 
+        if "SEPARATOR" in name and not "SEPARATOR" in tooltip: # Disallow "SEPARATOR" to be in the name of any option. This is to prevent any future errors. 
             raise ValueError("Option name and tooltip can not include 'SEPARATOR'")
         
         if not callable(callback): # Ensure callback is a callable.
@@ -159,8 +159,8 @@ class OptionForm(Form):
     
     def addSeparator(self, text: str = None) -> None:
         """ Create a separator between options. """
-        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if text else "", "SEPARATOR") # lambda returns text if text exists.
         super().addSeparator()
+        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if text else "", "SEPARATOR") # lambda returns text if text exists.
 
     def send(self) -> None:
         super().send()
