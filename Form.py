@@ -81,7 +81,7 @@ class Form (ABC):
             - settings `FormSettings` - (Optional) Settings for customisation. Import it here if you are using a standardised settings book.
         """
         self.title = title + Style.RESET_ALL
-        self.body = body + Style.RESET_ALL
+        self.body = body + Style.RESET_ALL if body else None
         self.separatorCount = 0 # Set to zero. This variable is counted to ensure every separator has a unique name.
         if _settings is None:
             self.settings = FormSettings() # Sets settings to a default configuration if no custom settings were provided.
