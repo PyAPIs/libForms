@@ -1,6 +1,8 @@
 import os
 from abc import ABC
 from enum import Enum
+from click import style
+from colorama import Fore, Style
 
 class FormSettings:
     """ This class is used to customise forms and give them their own look and feel.
@@ -20,6 +22,8 @@ class FormSettings:
         DEFAULT_CALLBACK = 2
         CLEAR_FORM_AFTER_ACTION = 3
         CLEAR_FORM_AFTER_FORM = 4
+
+        ERROR_COLOUR = Fore.RED
         pass
 
     def __init__(self) -> None:
@@ -76,8 +80,8 @@ class Form (ABC):
             - body `str` - (Optional) Provide extra information to the form.
             - settings `FormSettings` - (Optional) Settings for customisation. Import it here if you are using a standardised settings book.
         """
-        self.title = title
-        self.body = body
+        self.title = title + Style.RESET_ALL
+        self.body = body + Style.RESET_ALL
         self.separatorCount = 0 # Set to zero. This variable is counted to ensure every separator has a unique name.
         if _settings is None:
             self.settings = FormSettings() # Sets settings to a default configuration if no custom settings were provided.
@@ -85,7 +89,7 @@ class Form (ABC):
             self.settings = _settings 
 
     def setBody(self, body: str) -> None:
-        self.body = body
+        self.body = body + Style.RESET_ALL
     
     def addSeparator(self) -> object:
         """ Adds line separator. This logic needs to be intergrated within each form.
@@ -154,13 +158,13 @@ class OptionForm(Form):
         # Adds option to the dictionary.
         self.options[name] = {
             self._CALLBACK: callback,
-            self._TOOLTIP: tooltip
+            self._TOOLTIP: tooltip + Style.RESET_ALL
         }
     
     def addSeparator(self, text: str = None) -> None:
         """ Create a separator between options. """
         super().addSeparator()
-        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text if text else "", "SEPARATOR") # lambda returns text if text exists.
+        self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text + Style.RESET_ALL if text else "", "SEPARATOR") # lambda returns text if text exists.
 
     def send(self) -> None:
         super().send()
@@ -173,7 +177,7 @@ class OptionForm(Form):
                 print("  " + value[self._CALLBACK]()) # Prints separator text (if it exists)
             else: # Print option
                 tt = value[self._TOOLTIP] # Get value for tooltip
-                print(f"  {idx}. {name}" + (f" --> {tt}" if tt else "")) # Print option in form `index. Option --> tooltip`
+                print(f"  {idx}. {name}" + (f" --> {tt}" if tt else "") + Style.RESET_ALL) # Print option in form `index. Option --> tooltip`
                 idx += 1 # Add to index
                 options[name] = value
 
@@ -184,9 +188,9 @@ class OptionForm(Form):
             try:
                 choice = int(input("Choose an option by number: ")) # Converts input to integer
                 if choice not in range(1, len(options) + 1): # True if the choice is not in the bounds of the options
-                    print("Invalid choice, please try again.")
+                    print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + "Invalid choice, please try again." + Style.RESET_ALL)
             except ValueError: # Catches cases where an int is not inputted in choice. Returns error and reruns while loop.
-                print("Please enter a valid number.")
+                print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + "Please enter a valid number." + Style.RESET_ALL)
 
         chosen_option = list(options.keys())[choice - 1] # Get the selected option.
 
@@ -203,7 +207,7 @@ class OptionForm(Form):
         if callback.__code__.co_argcount == 1: # Return true if callback is passing exactly one parameter. 
             callback(self) # Send in `self` as a parameter if the callback requires it.
         else:
-            callback()
+            callback() # Otherwise, just call callback
 
 class InputForm(Form):
 
@@ -342,6 +346,7 @@ class InputForm(Form):
                 + (f" --> {data[self.DataEntryConsts.TOOLTIP]}" if data[self.DataEntryConsts.TOOLTIP] else "")    
                 + (" (y/n)" if data[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL else "") 
                 + ": "
+                + Style.RESET_ALL
             )
 
             if data[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL:
@@ -354,7 +359,7 @@ class InputForm(Form):
                     elif response == "" and data[self.DataEntryConsts.DEFAULT] is not None: # Handle empty cases where a default value exists
                         self.inputs[name][self.DataEntryConsts.RESPONSE] = data[self.DataEntryConsts.DEFAULT]
                     else: # Handle invalid cases
-                        print("Invalid input: Please enter 'y' or 'n'.")
+                        print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + "Invalid input: Please enter 'y' or 'n'." + Style.RESET_ALL)
                         continue # Try again
 
                     break # Skip to next iteration
@@ -380,15 +385,15 @@ class InputForm(Form):
                         if data[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
                             validation_result = data[self.DataEntryConsts.VALIDATION]((response))
                             if validation_result: # If validation is True (i.e. not None), the validation has failed.
-                                print(validation_result) # Print error
+                                print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR + validation_result + Style.RESET_ALL)) # Print error
                                 continue # Try again
                         self.inputs[name][self.DataEntryConsts.RESPONSE] = response
                         break # Skip to next iteration
                     except ValueError as e:
                         if str(e) == ERROR_INV_NUMCONST:
-                            raise ValueError(f"numType {str(data[self.NumConsts.NUMTYPEKEY])} not a NumConst")
+                            raise ValueError(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + f"numType {str(data[self.NumConsts.NUMTYPEKEY])} not a NumConst" + Style.RESET_ALL)
                         else:
-                            print("Please enter a valid number.")
+                            print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + "Please enter a valid number." + Style.RESET_ALL)
             else: # Case where the type is text. 
                 while True: # Repeat until a valid value is outputted
                     response = inputCode()
@@ -399,7 +404,7 @@ class InputForm(Form):
                     if data[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
                         validation_result = data[self.DataEntryConsts.VALIDATION](response)
                         if validation_result: # If validation is True (i.e. not None), the validation has failed.
-                            print(validation_result) # Print error
+                            print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR + validation_result + Style.RESET_ALL)) # Print error
                             continue # Try again
                     self.inputs[name][self.DataEntryConsts.RESPONSE] = response
                     break # Skip to next iteration
