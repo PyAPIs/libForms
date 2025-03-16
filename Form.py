@@ -23,7 +23,7 @@ class FormSettings:
         CLEAR_FORM_AFTER_ACTION = 3
         CLEAR_FORM_AFTER_FORM = 4
 
-        ERROR_COLOUR = Fore.RED
+        ERROR_COLOUR = 5
         pass
 
     def __init__(self) -> None:
@@ -32,7 +32,8 @@ class FormSettings:
             self.Setting.SEPARATOR: "",
             self.Setting.DEFAULT_CALLBACK: None,
             self.Setting.CLEAR_FORM_AFTER_ACTION: False,
-            self.Setting.CLEAR_FORM_AFTER_FORM: False
+            self.Setting.CLEAR_FORM_AFTER_FORM: False,
+            self.Setting.ERROR_COLOUR: Fore.RED
         }
 
     def editSetting(self, setting: Setting, newVal):
