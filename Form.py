@@ -159,7 +159,7 @@ class OptionForm(Form):
         # Adds option to the dictionary.
         self.options[name] = {
             self._CALLBACK: callback,
-            self._TOOLTIP: tooltip + Style.RESET_ALL
+            self._TOOLTIP: tooltip
         }
     
     def addSeparator(self, text: str = None) -> None:
@@ -178,7 +178,7 @@ class OptionForm(Form):
                 print("  " + value[self._CALLBACK]()) # Prints separator text (if it exists)
             else: # Print option
                 tt = value[self._TOOLTIP] # Get value for tooltip
-                print(f"  {idx}. {name}" + (f" --> {tt}" if tt else "") + Style.RESET_ALL) # Print option in form `index. Option --> tooltip`
+                print(f"  {idx}. {name}" + (f" --> {tt + Style.RESET_ALL}" if tt else "") + Style.RESET_ALL) # Print option in form `index. Option --> tooltip`
                 idx += 1 # Add to index
                 options[name] = value
 
