@@ -404,7 +404,7 @@ class InputForm(Form):
                     if data[self.DataEntryConsts.VALIDATION]: # Execute validation (if exists)
                         validation_result = data[self.DataEntryConsts.VALIDATION](response)
                         if validation_result: # If validation is True (i.e. not None), the validation has failed.
-                            print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR + validation_result + Style.RESET_ALL)) # Print error
+                            print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + validation_result + Style.RESET_ALL) # Print error
                             continue # Try again
                     self.inputs[name][self.DataEntryConsts.RESPONSE] = response
                     break # Skip to next iteration
