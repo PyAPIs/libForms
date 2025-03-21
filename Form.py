@@ -153,8 +153,6 @@ class OptionForm(Form):
         
         if not callable(callback): # Ensure callback is a callable.
             raise ValueError("Callback must be a callable function")
-        elif callback.__code__.co_argcount not in [1, 0]:
-            raise ValueError("Callback must take exactly one parameter (self) or none.")
 
         # Adds option to the dictionary.
         self.options[name] = {
@@ -253,10 +251,8 @@ class InputForm(Form):
             callback = kwargs.get('callback', None) # Gets the value for the (keyword) parameter validation
             if "SEPARATOR" in name:
                 raise ValueError("Input name and tooltip cannot include 'SEPARATOR'") # Disallow "SEPARATOR" to be in the name of any option. This is to prevent any future errors. 
-            if validation and validation.__code__.co_argcount != 1: # If validation exists, checks that the callable has only one parameter
-                raise ValueError("Validation function must take exactly one parameter (response)")
-            if callback and callable(callback) and callback.__code__.co_argcount not in [1, 0]: # If callback exists, checks that the callable has only one parameter
-                raise ValueError("Callback must take exactly one parameter (self) or none.")
+            if validation and validation.__code__.co_argcount == 1: # If validation exists, checks that the callable has at least one parameter.
+                raise ValueError("Validation function must take at least one parameter (response)")
             
             self.inputs[name] = { # Saves the necessary data to Inputs. This will be expanded by the functions this is decorating.
                 self.DataEntryConsts.RESPONSE: None,
