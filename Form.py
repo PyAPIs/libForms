@@ -251,7 +251,7 @@ class InputForm(Form):
             callback = kwargs.get('callback', None) # Gets the value for the (keyword) parameter validation
             if "SEPARATOR" in name:
                 raise ValueError("Input name and tooltip cannot include 'SEPARATOR'") # Disallow "SEPARATOR" to be in the name of any option. This is to prevent any future errors. 
-            if validation and validation.__code__.co_argcount == 1: # If validation exists, checks that the callable has at least one parameter.
+            if validation and validation.__code__.co_argcount != 1: # If validation exists, checks that the callable has at least one parameter.
                 raise ValueError("Validation function must take at least one parameter (response)")
             
             self.inputs[name] = { # Saves the necessary data to Inputs. This will be expanded by the functions this is decorating.
