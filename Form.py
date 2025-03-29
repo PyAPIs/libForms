@@ -53,6 +53,8 @@ class FormSettings:
         # Validation for newVal's
         if setting == self.Setting.DEFAULT_CALLBACK and not callable(newVal):
             raise ValueError("default_callback must be a callable")
+        elif setting == self.Setting.OPTIONS_TEXT and newVal == "":
+            newVal = None
         elif setting in [self.Setting.CLEAR_FORM_AFTER_ACTION, self.Setting.CLEAR_FORM_AFTER_FORM] and not isinstance(newVal, bool):
             raise ValueError(f"{setting} must be a boolean")
         elif setting in [self.Setting.HEADER, self.Setting.SEPARATOR] and not isinstance(newVal, str):
@@ -170,7 +172,9 @@ class OptionForm(Form):
     def send(self) -> None:
         super().send()
 
-        print(f"{self.settings.getSetting(FormSettings.Setting.OPTIONS_TEXT)}:")
+        optionsText = self.settings.getSetting(FormSettings.Setting.OPTIONS_TEXT)
+        if optionsText:
+            print(f"{optionsText}:")
         idx = 1 # Index to signify the order of the options.
         options = {}  # A local variable with no separators and only options.
         for name, value in self.options.items(): # Separates self.options into its key (name) and a info dict
