@@ -59,8 +59,10 @@ class FormSettings:
             else: newVal += Style.RESET_ALL # Resets all styles of newVal after the value
         elif setting in [self.Setting.CLEAR_FORM_AFTER_ACTION, self.Setting.CLEAR_FORM_AFTER_FORM] and not isinstance(newVal, bool):
             raise ValueError(f"{setting} must be a boolean")
-        elif setting in [self.Setting.HEADER, self.Setting.SEPARATOR] and not isinstance(newVal, str):
-            raise ValueError(f"{setting} must be a string")
+        elif setting in [self.Setting.HEADER, self.Setting.SEPARATOR]:
+            if not isinstance(newVal, str):
+                raise ValueError(f"{setting} must be a string")
+            newVal += Style.RESET_ALL
 
         self.settings[setting] = newVal # Sets setting to newVal
 
