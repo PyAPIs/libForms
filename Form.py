@@ -24,6 +24,7 @@ class FormSettings:
         CLEAR_FORM_AFTER_FORM = 4
 
         ERROR_COLOUR = 5
+        OPTIONS_TEXT = 6
         pass
 
     def __init__(self) -> None:
@@ -33,7 +34,8 @@ class FormSettings:
             self.Setting.DEFAULT_CALLBACK: None,
             self.Setting.CLEAR_FORM_AFTER_ACTION: False,
             self.Setting.CLEAR_FORM_AFTER_FORM: False,
-            self.Setting.ERROR_COLOUR: Fore.RED
+            self.Setting.ERROR_COLOUR: Fore.RED,
+            self.Setting.OPTIONS_TEXT: "Options"
         }
 
     def editSetting(self, setting: Setting, newVal):
@@ -168,7 +170,7 @@ class OptionForm(Form):
     def send(self) -> None:
         super().send()
 
-        print("Options:")
+        print(f"{self.settings.getSetting(FormSettings.Setting.OPTIONS_TEXT)}:")
         idx = 1 # Index to signify the order of the options.
         options = {}  # A local variable with no separators and only options.
         for name, value in self.options.items(): # Separates self.options into its key (name) and a info dict

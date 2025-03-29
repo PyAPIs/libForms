@@ -7,6 +7,7 @@ class OptionFormExample:
     settings.editSetting(FormSettings.Setting.SEPARATOR, "/*******************\\")
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
     settings.editSetting(FormSettings.Setting.DEFAULT_CALLBACK, lambda: print("Default callback"))
+    settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Pick an option!!!")
 
     form = OptionForm(
         title="Form Title",
