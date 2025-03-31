@@ -90,7 +90,7 @@ class Form (ABC):
     """
     def __init__(self, title: str, body: str = None, _settings: FormSettings = None):
         """ Initialises base form """
-        self.title = title + Style.RESET_ALL
+        self.title = Style.BRIGHT + title + Style.RESET_ALL
         self.body = body + Style.RESET_ALL if body else None
         self.separatorCount = 0 # Set to zero. This variable is counted to ensure every separator has a unique name.
 
