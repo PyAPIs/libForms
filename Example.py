@@ -8,6 +8,7 @@ class OptionFormExample:
     settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM, True)
     settings.editSetting(FormSettings.Setting.DEFAULT_CALLBACK, lambda: print("Default callback"))
     settings.editSetting(FormSettings.Setting.OPTIONS_TEXT, "Pick an option!!!")
+    settings.editSetting(FormSettings.Setting.CLEAN_FAILED_RESPONSES, 2)
 
     form = OptionForm(
         title="Form Title",
@@ -17,7 +18,8 @@ class OptionFormExample:
 
     form.addOption(
         name="Option 1",
-        callback=lambda: print("Option 1 selected")
+        callback=lambda: print("Option 1 selected"),
+        isDefault=True
     )
     form.addOption(
         name="Option 2",
@@ -53,7 +55,8 @@ class InputFormExample:
     form.registerTextInput(
         name="Text Input",
         tooltip="This is a tooltip for Text input",
-        callback=lambda self: self.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, True)
+        validation=lambda response: False if response else "Please do not leave this field empty.",
+        # callback=lambda self: self.settings.editSetting(FormSettings.Setting.CLEAR_FORM_AFTER_ACTION, True)
     )
 
     form.registerBoolInput(

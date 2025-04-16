@@ -22,9 +22,10 @@ class FormSettings:
         DEFAULT_CALLBACK = 2
         CLEAR_FORM_AFTER_ACTION = 3
         CLEAR_FORM_AFTER_FORM = 4
+        CLEAN_FAILED_RESPONSES = 5 # Will reset form after every failure
 
-        ERROR_COLOUR = 5
-        OPTIONS_TEXT = 6
+        ERROR_COLOUR = 6
+        OPTIONS_TEXT = 7
         pass
 
     def __init__(self) -> None:
@@ -34,6 +35,8 @@ class FormSettings:
             self.Setting.DEFAULT_CALLBACK: None,
             self.Setting.CLEAR_FORM_AFTER_ACTION: False,
             self.Setting.CLEAR_FORM_AFTER_FORM: False,
+            self.Setting.CLEAN_FAILED_RESPONSES: 0,
+
             self.Setting.ERROR_COLOUR: Fore.RED,
             self.Setting.OPTIONS_TEXT: "Options"
         }
@@ -53,16 +56,20 @@ class FormSettings:
         # Validation for newVal's
         if setting == self.Setting.DEFAULT_CALLBACK and not callable(newVal):
             raise ValueError("default_callback must be a callable")
-        elif setting == self.Setting.OPTIONS_TEXT:
-            if not isinstance(newVal, str) or newVal == "":
-                newVal = None # Sets newVal to None if newVal is an empty string
-            else: newVal += Style.RESET_ALL # Resets all styles of newVal after the value
-        elif setting in [self.Setting.CLEAR_FORM_AFTER_ACTION, self.Setting.CLEAR_FORM_AFTER_FORM] and not isinstance(newVal, bool):
-            raise ValueError(f"{setting} must be a boolean")
         elif setting in [self.Setting.HEADER, self.Setting.SEPARATOR]:
             if not isinstance(newVal, str):
                 raise ValueError(f"{setting} must be a string")
             newVal += Style.RESET_ALL
+        elif setting in [self.Setting.CLEAR_FORM_AFTER_ACTION, self.Setting.CLEAR_FORM_AFTER_FORM] and not isinstance(newVal, bool):
+            raise ValueError(f"{setting} must be a boolean")
+        elif setting == self.Setting.CLEAN_FAILED_RESPONSES:
+            if newVal and not isinstance(newVal, int): # If not falsy and not an int
+                raise ValueError(f"{setting} must be None or an int.")
+            newVal = newVal or 0 # Sets newVal to 0 if falsy
+        elif setting == self.Setting.OPTIONS_TEXT:
+            if not isinstance(newVal, str) or newVal == "":
+                newVal = None # Sets newVal to None if newVal is an empty string
+            else: newVal += Style.RESET_ALL # Resets all styles of newVal after the value
 
         self.settings[setting] = newVal # Sets setting to newVal
 
@@ -144,19 +151,22 @@ class OptionForm(Form):
     # Constants used to save option attributes
     _CALLBACK = 0
     _TOOLTIP = 1
+
+    default_option = None
     
     def __init__(self, title: str, body: str = None, settings: FormSettings = None):
         """ Initialise form. """
         super().__init__(title, body, settings) 
         self.options = {} # Initialises an empty set of options.
 
-    def addOption(self, name: str, callback: callable, tooltip: str = None) -> None:
+    def addOption(self, name: str, callback: callable, tooltip: str = None, isDefault: bool = False) -> None:
         """ Add an option to the form.
             
             Params:
              WARNING: name can not include "SEPARATOR"
              callback is run if the option is selected
              tooltip appears below the option for added detail. Can be blank.
+             isDefault sets this as the default option to select if no input is given.
         """
 
         if "SEPARATOR" in name and not "SEPARATOR" in tooltip: # Disallow "SEPARATOR" to be in the name of any option. This is to prevent any future errors. 
@@ -170,14 +180,23 @@ class OptionForm(Form):
             self._CALLBACK: callback,
             self._TOOLTIP: tooltip
         }
+
+        if isDefault: self.default_option = name
     
     def addSeparator(self, text: str = None) -> None:
         """ Create a separator between options. """
         super().addSeparator() # Adds one to separator counter
         self.addOption(f"SEPARATOR{self.separatorCount}", lambda: text + Style.RESET_ALL if text else "", "SEPARATOR") # lambda returns text if text exists.
 
-    def send(self) -> None:
+    def send(self, error: str = None) -> None:
         """ Send option form to player. """
+
+        def clear_terminal():
+            """ Clear terminal. """
+            print("Clearing Form...") # Debugging line
+            print("\n" * 20) # Separator line if the system can not clear the console.
+            os.system("cls" if os.name == "nt" else "clear") # Run clear
+
         super().send() # Send heading info.
 
         optionsText = self.settings.getSetting(FormSettings.Setting.OPTIONS_TEXT) # Get options text
@@ -198,20 +217,36 @@ class OptionForm(Form):
         print(self.settings.getSetting(FormSettings.Setting.SEPARATOR)) # Print separator
 
         choice = None # Assign None to choice to enter while loop.
+        invalid = None # Track invalid attempts. Assign None to invalid to not reset form on first iteration.
         while choice not in range(1, len(options) + 1): # Validation to ensure a valid option was selected
+            if isinstance(invalid, int) and invalid == self.settings.getSetting(FormSettings.Setting.CLEAN_FAILED_RESPONSES): # Check if too many invalid arguments have passed.
+                clear_terminal()
+                return self.send(error) # Resend form and exit
+
+            invalid = invalid or 0 # Set invalid to 0 if falsy
             try:
+                if error: print(error)
                 choice = int(input("Choose an option by number: ")) # Converts input to integer
                 if choice not in range(1, len(options) + 1): # True if the choice is not in the bounds of the options
-                    print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + "Invalid choice, please try again." + Style.RESET_ALL)
+                    error = "Invalid choice, please try again."
+                    invalid += 1 # Add one to invalid case
             except ValueError: # Catches cases where an int is not inputted in choice. Returns error and reruns while loop.
-                print(self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + "Please enter a valid number." + Style.RESET_ALL)
+                if not choice and self.default_option: # If empty choice inputted and default option is set
+                    try:
+                        choice = list(options.keys()).index(self.default_option) + 1 # Set choice to the choice of the option
+                        break # Exit while loop
+                    except: pass # Ignore if there are any issues
+
+                error = "Please enter a valid number."
+                invalid += 1 # Add one to invalid case
+
+            if error:
+                error = self.settings.getSetting(FormSettings.Setting.ERROR_COLOUR) + error + Style.RESET_ALL
 
         chosen_option = list(options.keys())[choice - 1] # Get the selected option.
 
         if self.settings.getSetting(FormSettings.Setting.CLEAR_FORM_AFTER_FORM):
-            print("Clearing Form...")  # Debugging line
-            print("\n" * 20) # Separator line if the system can not clear the console.
-            os.system("cls" if os.name == "nt" else "clear")
+            clear_terminal()
         if self.settings.getSetting(FormSettings.Setting.DEFAULT_CALLBACK):
             self.settings.getSetting(FormSettings.Setting.DEFAULT_CALLBACK)() # Run form callback.
 
@@ -340,11 +375,12 @@ class InputForm(Form):
         
             Note: This dictionary has the input name as a key. Best store these with constants on form creation.
         """
+
         super().send() 
 
         def clear_terminal():
             """ Clear terminal. """
-            print("Clearing Form...")  # Debugging line
+            print("Clearing Form...") # Debugging line
             print("\n" * 20) # Separator line if the system can not clear the console.
             os.system("cls" if os.name == "nt" else "clear") # Run clear
 
@@ -355,7 +391,7 @@ class InputForm(Form):
             
             inputCode = lambda: input( # Anonomous function to format the input.
                 name # Start with the input name
-                + (f" (Default: {data[self.DataEntryConsts.DEFAULT] + Style.RESET_ALL})" if data[self.DataEntryConsts.DEFAULT] is not None else "") # Display default value (if exists)
+                + (f" (Default: {str(data[self.DataEntryConsts.DEFAULT]) + Style.RESET_ALL})" if data[self.DataEntryConsts.DEFAULT] is not None else "") # Display default value (if exists)
                 + (f" --> {data[self.DataEntryConsts.TOOLTIP] + Style.RESET_ALL}" if data[self.DataEntryConsts.TOOLTIP] else "") # Display tooltip (if exists)
                 + (" (y/n)" if data[self.DataEntryConsts.TYPE] == self.InputConsts.BOOL else "") # Display (y/n) option if bool
                 + ": " # Queue input
@@ -437,6 +473,6 @@ class InputForm(Form):
 
         for name in list(self.inputs.keys()): # Remove separators from response
             if "SEPARATOR" in name:
-                self.inputs.pop(name)
 
+                self.inputs.pop(name) # Remove separators before returning
         return self.inputs # Return all inputs for manipulation.
